@@ -1,11 +1,14 @@
-import React, { Component } from 'react'
+import React, { Component, createRef } from 'react'
 import './App.css'
 
 import Formulaire from './Components/Formulaire'
 import Message from './Components/Message'
 
-
+//Firebase
+import base from './base'
 class App extends Component {
+
+
 /***********************
  ********STATE********
  **********************/
@@ -14,11 +17,51 @@ state = {
   pseudo: this.props.match.params.pseudo
 }
 
+/**
+ * Reference du message pour stocker
+ * dans la div du message
+ * Appel a createRef
+ */
+messagesRef = createRef()
+
+/**
+ * Gestion et connexion à Firebase
+ */
+componentDidMount() {
+  base.syncState('/', {
+    context: this,
+    state: 'messages'
+  })
+}
+
+/**
+ * Déclenchement à chaque mise a jour du state.
+ * current fait reference à la balise 'ref'
+ */
+componentDidUpdate() {
+  const ref = this.messagesRef.current
+  ref.scrollTop = ref.scrollHeight //scroll revient au down de facon auto
+}
+
+
 addMessage = message => {
   const messages = {...this.state.messages}
   messages[`message-${Date.now()}`] = message
-  this.setState({messages})
+  
+  //On  créer une boucle pour garder les 10 derniers messages
+    Object
+      .keys(messages)
+      .slice(0, -10)
+      .forEach(key => {
+        messages[key] = null
+      })
+
+      this.setState({messages}) //Maj du state
 }
+
+
+//boolean qui va vérifier si nous somme l'utilisateur
+isUser = pseudo => pseudo === this.state.pseudo 
 
 /***********************
  * *******RENDER********
@@ -32,6 +75,7 @@ addMessage = message => {
            .keys(this.state.messages)
            .map(key =>(
              <Message
+             isUser={this.isUser}//Importer ds le component message
              key={key}
              message={this.state.messages[key].message}
              pseudo={this.state.messages[key].pseudo} />
@@ -40,7 +84,7 @@ addMessage = message => {
     return (
       <div className='box'>
         <div>
-        <div className='messages'>
+        <div className='messages' ref={this.messagesRef}>
           <div className="message">
             {messages}
           </div>
